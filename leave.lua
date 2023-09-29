@@ -29,7 +29,13 @@ client:on('messageCreate', function(message)
 if message.content == '!status' then -- Пример команды для получения списка ролей
 	RoleForPing_id = ""
 	RoleForCheck_id = ""
+	if message.guild == nil then
+		message:addReaction("✅");
+		return;
+	end
+
 	local roles = message.guild.roles -- Получаем коллекцию всех ролей на сервере
+
 	--rewrite this part
 	for _, role in pairs(roles) do
 		--print(role.id, role.name) -- Выводим идентификатор и имя каждой роли
@@ -53,8 +59,13 @@ if message.content == '!status' then -- Пример команды для по�
 		if channel.name == ChannelForPing then
 			ChannelForPing_id = channel.id
 			print("Find channel " .. ChannelForPing .. " " .. channel.id)
+			if message.channel.id == channel.id then
+				message:addReaction("✅");
+			end
+
 		end
 	end
+
 	--[[
 	local role = message.guild:getRole(RoleForPing_id)
         client:getChannel(ChannelForPing_id):send(role.mentionString .. " Участник: " .. message.member.tag .. ' покинул сервер!')
@@ -65,8 +76,8 @@ end)
 client:on('memberLeave', function(member)
 	print("Catch leave")
 	
-	RoleForPing_id = ""
-	RoleForCheck_id = ""
+	RoleForPing_id = nil
+	RoleForCheck_id = nil
 	local roles = member.guild.roles
 	--rewrite this part
 		for _, role in pairs(roles) do
@@ -75,12 +86,20 @@ client:on('memberLeave', function(member)
 				RoleForCheck_id = role.id
 			end
 		end
+		if RoleForCheck_id == nil then
+			print("ERROR: Role:".. RoleForCheck.." not found!!")
+		end
+
 		for _, role in pairs(roles) do
 			if role.name == RoleForPing then
 				print("Find role ".. RoleForPing .. " " .. role.id)
 				RoleForPing_id = role.id
 			end
+		if RoleForPing_id == nil then
+			print("ERROR: Role:".. RoleForPing.." not found!!")
 		end
+
+	end
 
 	local guild = member.guild
 	local textChannels = guild.textChannels
@@ -89,6 +108,9 @@ client:on('memberLeave', function(member)
 		if channel.name == ChannelForPing then
 			ChannelForPing_id = channel.id
 			print("Find channel " .. ChannelForPing .. " " .. channel.id)
+		end
+		if ChannelForPing_id == nil then
+			print("ERROR: Channel:".. ChannelForPing.." not found!!")
 		end
 	end
 
