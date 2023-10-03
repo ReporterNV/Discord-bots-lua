@@ -26,15 +26,17 @@ client:on('ready', function()
 end)
 
 client:on('messageCreate', function(message)
-if message.content == '!status' then -- Пример команды для получения списка ролей
-	RoleForPing_id = ""
-	RoleForCheck_id = ""
+if message.content == '!status' then
+
 	if message.guild == nil then
 		message:addReaction("✅");
 		return;
 	end
 
-	local roles = message.guild.roles -- Получаем коллекцию всех ролей на сервере
+	local roles = message.guild.roles
+
+	RoleForPing_id = ""
+	RoleForCheck_id = ""
 
 	--rewrite this part
 	for _, role in pairs(roles) do
@@ -44,12 +46,23 @@ if message.content == '!status' then -- Пример команды для по�
 			RoleForCheck_id = role.id
 		end
 	end
+
+	if RoleForCheck_id == nil then
+		print ("Role "..RoleForCheck.." not found!")
+		return;
+	end
+
 	for _, role in pairs(roles) do
 		--print(role.id, role.name) -- Выводим идентификатор и имя каждой роли
 		if role.name == RoleForPing then
 			print("Find role ".. RoleForPing .. " " .. role.id)
 			RoleForPing_id = role.id
 		end
+	end
+
+	if RoleForPing_id == nil then
+		print ("Role " .. RoleForPing .. " not found!")
+		return;
 	end
 
 	local guild = message.guild
@@ -62,6 +75,9 @@ if message.content == '!status' then -- Пример команды для по�
 			if message.channel.id == channel.id then
 				message:addReaction("✅");
 			end
+		else
+			print("Channel " .. ChannelForPing .. " not found ")
+			return;
 
 		end
 	end
