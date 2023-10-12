@@ -46,8 +46,14 @@ for _, elem in pairs(Indiscord) do
 		--print (err)
 	else
 		print(nick)
-	end
+		for _, elem in pairs(Ingame) do
+			_, last = string.find(elem, nick)
+			if (last) then
+				print("-"..nick)
+			end
+		end
 
+end
 end
 
 
