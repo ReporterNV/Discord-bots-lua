@@ -4,12 +4,6 @@ local discordia = require('discordia')
 local client = discordia.Client {
 	gatewayIntents = 3276799,
 }
---[[
---Бот загружает доступные роли
---Проверяет есть ли роли которые надо пинговать
---Проверяет что может писать в канал
---Ловит события лива и пингует рекрутера
---]]
 
 local RoleForCheck = 'Участник'
 local RoleForCheck_id = nil
@@ -27,6 +21,31 @@ local ImportFilename = "ingame.txt"
 client:on('ready', function()
 	print('Bot is ready!')
 end)
+
+function FillTable (filename, Table)
+	for line in io.lines(filename) do
+			table.insert(Table, line)
+	end
+end
+
+function CutPrefix (nick)
+	local err = nil
+	local d_pref = "[WiT]"
+	local n_pref = string.sub(nick, 1, 5)
+	if d_pref ~= n_pref then
+		err = ("Неверный префикс \'" .. nick .. "\'. Вместо " .. d_pref .. " указан " .. n_pref)
+		return nick, err
+	end
+
+	local space_after_pref = string.sub(nick, 6, 6)
+	if space_after_pref ~= " " then
+		err = ("У \'" .. nick .. "\' .. отсутствует пробел после приставки " .. d_pref)
+		return nick, err
+	end
+	
+	nick_without_prefix = string.sub(nick, 7)
+	return nick_without_prefix, nil
+end
 
 local function saveMembers(members)
    local file = io.open(SaveFilename, 'w')
