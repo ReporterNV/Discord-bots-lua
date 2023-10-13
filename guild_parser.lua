@@ -8,7 +8,7 @@ function FillTable (filename, Table)
 	end
 end
 
-function CutPrefix (nick)
+function CheckPrefix(nick)
 	local err = nil
 	local d_pref = "[WiT]"
 	local n_pref = string.sub(nick, 1, 5)
@@ -38,22 +38,25 @@ end
 FillTable("indiscord.txt", Indiscord);
 FillTable("ingame.txt", Ingame);
 local err
-
+local answer=""
 for _, elem in pairs(Indiscord) do
 	-- print(elem)
-	nick, err = CutPrefix(elem)
+	nick, err = CheckPrefix(elem)
 	if err ~= nil then
+		answer = answer .. err .. "\n"
 		--print (err)
 	else
-		print(nick)
-		for _, elem in pairs(Ingame) do
-			_, last = string.find(elem, nick)
-			if (last) then
-				print("-"..nick)
+		i = 0
+		for _, gamenick in pairs(Ingame) do
+			i = i +1 
+			_, last = string.find(nick, gamenick)
+			if (last) and (last < #nick) then
+				answer = answer .. ("\'" .. nick .. "\'" .. " После ника отсуствует разделительный пробел\n")
+				--print("\'" .. nick .. "\'" .. " После ника отсуствует разделительный пробел")
 			end
 		end
-
+	end
 end
-end
 
+print(answer.."\b")
 
