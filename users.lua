@@ -18,6 +18,8 @@ local SaveFilename = "indiscord.txt"
 local ImportFilename = "ingame.txt"
 
 
+log = print
+
 client:on('ready', function()
 	print('Bot is ready!')
 end)
@@ -26,25 +28,6 @@ function FillTable (filename, Table)
 	for line in io.lines(filename) do
 			table.insert(Table, line)
 	end
-end
-
-function CutPrefix (nick)
-	local err = nil
-	local d_pref = "[WiT]"
-	local n_pref = string.sub(nick, 1, 5)
-	if d_pref ~= n_pref then
-		err = ("Неверный префикс \'" .. nick .. "\'. Вместо " .. d_pref .. " указан " .. n_pref)
-		return nick, err
-	end
-
-	local space_after_pref = string.sub(nick, 6, 6)
-	if space_after_pref ~= " " then
-		err = ("У \'" .. nick .. "\' .. отсутствует пробел после приставки " .. d_pref)
-		return nick, err
-	end
-	
-	nick_without_prefix = string.sub(nick, 7)
-	return nick_without_prefix, nil
 end
 
 local function saveMembers(members)
@@ -59,19 +42,34 @@ local function saveMembers(members)
    file:close()
 end
 
-local function importNames()
-	ImportedNames = {};
-	local file = io.open(ImportFilename, 'r') -- add check for exist
-	for line in file:lines() do
-		table.insert(ImportedNames, line);
+
+function CheckPrefix(nick)
+	local err = nil
+	local d_pref = "[WiT]"
+	local n_pref = string.sub(nick, 1, 5)
+	if d_pref ~= n_pref then
+		err = ("Неверный префикс \'" .. nick .. "\'. Вместо " .. d_pref .. " указан " .. n_pref)
+		return nick, err
+	end
+
+	local space_after_pref = string.sub(nick, 6, 6)
+	if space_after_pref ~= " " then
+		err = ("\'" .. nick .. "\' .. отсутствует пробел после приставки " .. d_pref)
+		return nick, err
 	end
 	
-	file:close()
-	return ImportedNames
+	local check_after_pref = string.sub(nick, 7, 7)
+	if not string.match(check_after_pref, "[A-Za-z1-9]") then
+		err = ("\'" .. nick .. "\' .. после приставки и пробела невалидный символ:\'" .. check_after_pref .. "\'" )
+		return ret, err
+	end
+
+	nick_without_prefix = string.sub(nick, 7)
+	ret = string.match(nick_without_prefix, "%S+")
+	return ret, nil
+	zzo
 end
 
-
-log = print
 
 client:on('messageCreate', function(message)
 	if message.content == '!checkmembers' then
@@ -141,9 +139,9 @@ client:on('messageCreate', function(message)
 		end
 		
 		saveMembers(membersWithRole)
-		
-		inGame = importNames()
-		if importNames == nil then
+		inGame = {}
+		FillTable(ImportFilename, inGame)
+		if Ingame == nil then
 			log("ERROR");
 		end
 		
@@ -154,7 +152,6 @@ client:on('messageCreate', function(message)
 	
 			for _, DiscordNick in ipairs(membersWithRole) do
 				if string.find(string.lower(DiscordNick.name), string.lower(GameNick)) then
-					-- print("Find member: " .. GameNick); 
 					found = true
 					break;
 				end
@@ -170,10 +167,24 @@ client:on('messageCreate', function(message)
 		for _, Nick in ipairs(NotFoundMembers) do
 			answer = answer .. Nick .. "\n"
 		end
-	
+
 		message:reply("" .. answer)
+
+
+
 	
 		answer = ""
+		for _, DiscordNick in ipairs(membersWithRole) do
+			local err;
+			DiscordNick.name
+			nick, err  = CheckPrefix(DiscordNick.name)
+			if err ~= nil then
+				answer = answer .. err;
+			end
+
+		end
+		print (answer)
+		--[[
 		for _, DiscordNick in ipairs(membersWithRole) do
 			print(DiscordNick.name);
 			local found = false
@@ -198,14 +209,9 @@ client:on('messageCreate', function(message)
 				end
 			end
 		end
-		message:reply("Не удалось найти в игре: \n" .. answer .. "\n")
+		--]]
+		--message:reply("Не удалось найти в игре: \n" .. answer .. "\n")
 	
-		--[[
-		REWRITEE!!!!!!!
-		
-		I DONT WANT SEEE CODE LIKE THIS
-	
-		]]--
 	
 	
 	end

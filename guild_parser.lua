@@ -3,7 +3,7 @@ local Ingame = {};
 local WrongPrefix = {};
 
 function FillTable (filename, Table)
-	for line in io.lines(filename) do
+	for line in (io.lines(filename)) do
 			table.insert(Table, line)
 	end
 end
