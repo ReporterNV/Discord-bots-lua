@@ -67,7 +67,6 @@ function CheckPrefix(nick)
 	nick_without_prefix = string.sub(nick, 7)
 	ret = string.match(nick_without_prefix, "%S+")
 	return ret, nil
-	zzo
 end
 
 
