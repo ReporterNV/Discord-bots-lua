@@ -1,10 +1,15 @@
-token = require("token")
 local discordia = require('discordia')
+
+local token = require("token")
+local DEBUG = 1
+local logFile = "my.log"
+
 --local client = discordia.Client()
 local client = discordia.Client {
 	gatewayIntents = 3276799,
+	cacheAllMembers = true,
+	logFile = logFile,
 }
-
 local RoleForCheck = 'Участник'
 local RoleForCheck_id = nil
 
@@ -17,8 +22,20 @@ local ChannelForPing_id = nil
 local SaveFilename = "indiscord.txt"
 local ImportFilename = "ingame.txt"
 
+function log(str) --SEE Logger and log in discordia
+	if DEBUG then
+		local date = os.date("%Y-%M-%d %H:%M:%S")
+		print(date .. " | \27[34m[LOG]    \27[0m | " .. str)
 
-log = print
+		local file = io.open(logFile, "a");
+		file:write(date .. " | [LOG]     | " .. str .. "\n")
+		file:close()
+		return
+	else
+		str = ""
+		return;
+	end
+end
 
 client:on('ready', function()
 	print('Bot is ready!')
@@ -35,6 +52,7 @@ local function saveMembers(members)
    for _, member in ipairs(members) do
 	if member.nickname then
 		file:write(member.nickname .. '\n')
+		--file:write(member.user.username .. '\n')
 	else
 --		log("Not found nickname for: " .. member.user.username);
 	end
@@ -48,7 +66,11 @@ function CheckPrefix(nick)
 	local d_pref = "[WiT]"
 	local n_pref = string.sub(nick, 1, 5)
 	if d_pref ~= n_pref then
-		err = ("Неверный префикс \'" .. nick .. "\'. Вместо " .. d_pref .. " указан " .. n_pref)
+		if string.find(n_pref, '%[') and string.find(n_pref, '%]') then
+			err = ("Неверный префикс \'" .. nick .. "\'. Вместо " .. d_pref .. " указан " .. n_pref)
+		else
+			err = ("\'" .. nick .. "\'" .. " не указан префикс гильдии.")
+		end
 		return nick, err
 	end
 
@@ -60,9 +82,13 @@ function CheckPrefix(nick)
 	
 	local check_after_pref = string.sub(nick, 7, 7)
 	if not string.match(check_after_pref, "[A-Za-z1-9]") then
-		err = ("\'" .. nick .. "\' .. после приставки и пробела невалидный символ:\'" .. check_after_pref .. "\'" )
+		
+		--err = ("\'" .. nick .. "\' .. после приставки и пробела невалидный символ:\'" .. check_after_pref .. "\'" ) -- sometimes generate error	
+		--
+		err = ("\'" .. nick .. "\' .. после приставки и пробела невалидный символ\'" .. "".. "\'" ) 
 		return ret, err
 	end
+
 
 	nick_without_prefix = string.sub(nick, 7)
 	ret = string.match(nick_without_prefix, "%S+")
@@ -72,8 +98,8 @@ end
 
 client:on('messageCreate', function(message)
 	if message.content == '!checkmembers' then
-		log("Catch checkmembers:" .. message.author.name)
-	
+		log("Catch !checkmembers:" .. message.author.name)
+
 		RoleForPing_id = ""
 		RoleForCheck_id = ""
 		if message.guild == nil then
@@ -140,15 +166,14 @@ client:on('messageCreate', function(message)
 		saveMembers(membersWithRole)
 		inGame = {}
 		FillTable(ImportFilename, inGame)
-		if Ingame == nil then
-			log("ERROR");
+		if InGame == nil then
+			log("Ingame is empty");
 		end
 		
+		-- Check dont find member in discord
 		NotFoundMembers = {}
 		for _, GameNick in ipairs(inGame) do
-			--print(GameNick);
 			local found = false
-	
 			for _, DiscordNick in ipairs(membersWithRole) do
 				if string.find(string.lower(DiscordNick.name), string.lower(GameNick)) then
 					found = true
@@ -156,33 +181,63 @@ client:on('messageCreate', function(message)
 				end
 			end
 			if found == false then
-				print("Dont find member in discrod: " .. GameNick)
+				log("Don't find member in discord: " .. GameNick)
 				table.insert(NotFoundMembers, GameNick);
 			end
 		end
-	
-		answer = "Не удалось найти в discord:\n"
+
+
+		local answer = ""
+		first = 1 
 		table.sort(NotFoundMembers)
+
 		for _, Nick in ipairs(NotFoundMembers) do
 			answer = answer .. Nick .. "\n"
+			if #answer > 1000 then
+				if first then
+					message:reply("Не удалось найти в discord:\n" .. answer)
+					first = 0
+					answer = ""
+				else
+					message:reply(answer)
+					answer = ""
+				end
+			end
 		end
 
-		message:reply("" .. answer)
+		if first then
+			message:reply("Не удалось найти в discord:\n" .. answer)
+		else
+			message:reply(answer)
+		end
 
-
-
-	
+		--Check game users in discord
 		answer = ""
+
 		for _, DiscordNick in ipairs(membersWithRole) do
 			local err;
-			DiscordNick.name
 			nick, err  = CheckPrefix(DiscordNick.name)
 			if err ~= nil then
-				answer = answer .. err;
+				answer = answer .. err .. "\n";
+				if #answer > 1000 then
+					message:reply(answer)
+					answer = ""
+				end
 			end
-
 		end
-		print (answer)
+		message:reply(answer)
+		print(answer)
+		
+
+		--[[
+		if first == 0 then
+			message:reply("Не удалось найти в игре: \n" .. answer .. "\n")
+			first = 1;
+		else
+			message:reply(answer)
+		end
+		--]]
+
 		--[[
 		for _, DiscordNick in ipairs(membersWithRole) do
 			print(DiscordNick.name);
@@ -209,7 +264,8 @@ client:on('messageCreate', function(message)
 			end
 		end
 		--]]
-		--message:reply("Не удалось найти в игре: \n" .. answer .. "\n")
+		
+		message:reply(answer .. "\n")
 	
 	
 	
