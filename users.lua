@@ -49,12 +49,15 @@ local function exportDiscrodNicknames(members)
    for _, member in ipairs(members) do
 	if (member.nickname ~= nil) then
 		file:write(member.nickname .. '\n')
+		log("Found discord nickname for: " .. member.username .. " (" .. member.nickname .. ")")
 		table.insert(NickNameTable, member.nickname)
-	elseif (member._global_name  ~= nil) then
-		file:write(member._global_name .. '\n')
-		table.insert(NickNameTable, member._global_name)
+	elseif (member.user._global_name  ~= nil) then
+		file:write(member.user._global_name .. '\n')
+		log("Found global_name for: " .. member.username .. " (" .. member.user._global_name .. ")")
+		table.insert(NickNameTable, member.user._global_name)
 	else -- member.username should be exist
-		file:write(member.username .. '\n')
+		file:write(member.user.username .. '\n')
+		log("member.username: " .. member.username)
 		table.insert(NickNameTable, member.username)
 	end
    end
@@ -174,7 +177,7 @@ client:on('messageCreate', function(message)
 		NotFoundInDiscord = {}
 		for _, GameNick in ipairs(inGameNicknames) do
 			local found = false
-			for _, DiscordNick in ipairs(inGameNicknames) do
+			for _, DiscordNick in ipairs(DiscordNicknames) do
 				if string.find(string.lower(DiscordNick), string.lower(GameNick)) then
 					found = true
 					break;
@@ -182,38 +185,58 @@ client:on('messageCreate', function(message)
 			end
 			if found == false then
 				log("Don't find member in discord: " .. GameNick)
-				table.insert(NotFoundMembers, GameNick);
+				table.insert(NotFoundInDiscord, GameNick);
 			end
 		end
 
 
 		local answer = ""
 		isHeadPrinted = false
-		table.sort(NotFoundMembers)
+		table.sort(NotFoundInDiscord)
 		
 		--Send msgs with nicknames
-		for _, Nick in ipairs(NotFoundMembers) do
+		for _, Nick in ipairs(NotFoundInDiscord) do
 			answer = answer .. Nick .. "\n"
 			if #answer > 1000 then
 				if isHeadPrinted == false then
-					log(message:reply("Не удалось найти в discord:\n" .. answer))
+					message:reply("Не удалось найти в discord:\n" .. answer)
 					answer = ""
 					isHeadPrinted = true
 				else
-					log(message:reply(answer))
+					message:reply(answer)
 					answer = ""
 				end
 			end
 		end
 
 		if isHeadPrinted == false then
-			log(message:reply("Не удалось найти в discord:\n" .. answer))
+			message:reply("Не удалось найти в discord:\n" .. answer)
 		else
-			log(message:reply(answer))
+			message:reply(answer)
 		end
+		answer = ""
+		for _, DiscordNick in ipairs(DiscordNicknames) do
+			local WithoutPrefixNick
+			local err
+			WithoutPrefixNick, err = CheckPrefix(DiscordNick)
+			if err ~= nil then
+				log(err)
+				answer = answer .. err .. "\n"
+				if #answer > 1000 then
+					message:reply(answer)
+					answer = ""
+				end
+			else
+				for _, gamenick in ipairs(inGameNicknames) do --rewrite
+					_, last = string.find(WithoutPrefixNick, gamenick)
+					if (last) and (last < #WithoutPrefixNick) then
+						answer = answer .. ("\'" .. DiscordNick .. "\'" .. " После ника отсуствует разделительный пробел\n")
+					end
+				end
+			end
 
-		message:reply(answer .. "\n")
-	
+		end
+		
 	end
 end)
 
