@@ -37,29 +37,30 @@ function log(str) --SEE Logger and log in discordia
 	end
 end
 
-client:on('ready', function()
-	print('Bot is ready!')
-end)
-
 function FillTable (filename, Table)
 	for line in io.lines(filename) do
 			table.insert(Table, line)
 	end
 end
 
-local function saveMembers(members)
+local function exportDiscrodNicknames(members)
    local file = io.open(SaveFilename, 'w')
+   NickNameTable = {}
    for _, member in ipairs(members) do
-	if member.nickname then
+	if (member.nickname ~= nil) then
 		file:write(member.nickname .. '\n')
-		--file:write(member.user.username .. '\n')
-	else
---		log("Not found nickname for: " .. member.user.username);
+		table.insert(NickNameTable, member.nickname)
+	elseif (member._global_name  ~= nil) then
+		file:write(member._global_name .. '\n')
+		table.insert(NickNameTable, member._global_name)
+	else -- member.username should be exist
+		file:write(member.username .. '\n')
+		table.insert(NickNameTable, member.username)
 	end
    end
    file:close()
+   return NickNameTable
 end
-
 
 function CheckPrefix(nick)
 	local err = nil
@@ -84,7 +85,6 @@ function CheckPrefix(nick)
 	if not string.match(check_after_pref, "[A-Za-z1-9]") then
 		
 		--err = ("\'" .. nick .. "\' .. после приставки и пробела невалидный символ:\'" .. check_after_pref .. "\'" ) -- sometimes generate error	
-		--
 		err = ("\'" .. nick .. "\' .. после приставки и пробела невалидный символ\'" .. "".. "\'" ) 
 		return ret, err
 	end
@@ -95,6 +95,9 @@ function CheckPrefix(nick)
 	return ret, nil
 end
 
+client:on('ready', function()
+	print('Bot is ready!')
+end)
 
 client:on('messageCreate', function(message)
 	if message.content == '!checkmembers' then
@@ -112,7 +115,7 @@ client:on('messageCreate', function(message)
 		
 		for _, role in pairs(roles) do
 			if role.name == RoleForCheck then
-				print("Find role ".. RoleForCheck .. " " .. role.id)
+				log("Find role ".. RoleForCheck .. " " .. role.id)
 				RoleForCheck_id = role.id
 			end
 		end
@@ -124,7 +127,7 @@ client:on('messageCreate', function(message)
 	
 		for _, role in pairs(roles) do
 			if role.name == RoleForPing then
-				print("Find role ".. RoleForPing .. " " .. role.id)
+				log("Find role ".. RoleForPing .. " " .. role.id)
 				RoleForPing_id = role.id
 			end
 		end
@@ -140,7 +143,7 @@ client:on('messageCreate', function(message)
 		for _, channel in pairs(textChannels) do
 			if channel.name == ChannelForPing then
 				ChannelForPing_id = channel.id
-				print("Find channel " .. ChannelForPing .. " " .. channel.id)
+				log("Find channel " .. ChannelForPing .. " " .. channel.id)
 				if message.channel.id == channel.id then
 					message:addReaction("✅");
 				end
@@ -155,27 +158,24 @@ client:on('messageCreate', function(message)
 		for _, guildMember in ipairs(allMembers) do
 			if guildMember:hasRole(role) then
 				table.insert(membersWithRole, guildMember)
-				if guildMember.nickname == nil then
-					log("No nickname for: " .. guildMember.name );
-				end
-	
 			end
 	 		
 		end
 		
-		saveMembers(membersWithRole)
-		inGame = {}
-		FillTable(ImportFilename, inGame)
-		if InGame == nil then
-			log("Ingame is empty");
+		DiscordNicknames = exportDiscrodNicknames(membersWithRole)
+
+		inGameNicknames = {}
+		FillTable(ImportFilename, inGameNicknames)
+		if inGameNicknames == nil then
+			log("Nicknames from game not load");
 		end
 		
-		-- Check dont find member in discord
-		NotFoundMembers = {}
-		for _, GameNick in ipairs(inGame) do
+		-- Try find ingame members in discord
+		NotFoundInDiscord = {}
+		for _, GameNick in ipairs(inGameNicknames) do
 			local found = false
-			for _, DiscordNick in ipairs(membersWithRole) do
-				if string.find(string.lower(DiscordNick.name), string.lower(GameNick)) then
+			for _, DiscordNick in ipairs(inGameNicknames) do
+				if string.find(string.lower(DiscordNick), string.lower(GameNick)) then
 					found = true
 					break;
 				end
@@ -188,86 +188,31 @@ client:on('messageCreate', function(message)
 
 
 		local answer = ""
-		first = 1 
+		isHeadPrinted = false
 		table.sort(NotFoundMembers)
-
+		
+		--Send msgs with nicknames
 		for _, Nick in ipairs(NotFoundMembers) do
 			answer = answer .. Nick .. "\n"
 			if #answer > 1000 then
-				if first then
-					message:reply("Не удалось найти в discord:\n" .. answer)
-					first = 0
+				if isHeadPrinted == false then
+					log(message:reply("Не удалось найти в discord:\n" .. answer))
 					answer = ""
+					isHeadPrinted = true
 				else
-					message:reply(answer)
+					log(message:reply(answer))
 					answer = ""
 				end
 			end
 		end
 
-		if first then
-			message:reply("Не удалось найти в discord:\n" .. answer)
+		if isHeadPrinted == false then
+			log(message:reply("Не удалось найти в discord:\n" .. answer))
 		else
-			message:reply(answer)
+			log(message:reply(answer))
 		end
 
-		--Check game users in discord
-		answer = ""
-
-		for _, DiscordNick in ipairs(membersWithRole) do
-			local err;
-			nick, err  = CheckPrefix(DiscordNick.name)
-			if err ~= nil then
-				answer = answer .. err .. "\n";
-				if #answer > 1000 then
-					message:reply(answer)
-					answer = ""
-				end
-			end
-		end
-		message:reply(answer)
-		print(answer)
-		
-
-		--[[
-		if first == 0 then
-			message:reply("Не удалось найти в игре: \n" .. answer .. "\n")
-			first = 1;
-		else
-			message:reply(answer)
-		end
-		--]]
-
-		--[[
-		for _, DiscordNick in ipairs(membersWithRole) do
-			print(DiscordNick.name);
-			local found = false
-			local SP, EP = string.find(DiscordNick.name, "]") -- remove ]
-			local EditedNickname = ""
-			if SP ~= nil then
-				EditedNickname = string.sub(DiscordNick.name, SP+1) -- find word after ]
-				print(EditedNickname)
-				EditedNickname = string.match(EditedNickname or DiscordNick.name, "%w+")
-				local EditedNickname_low = string.lower(EditedNickname or DiscordNick.name)
-				for _, GameNick in ipairs(inGame) do
-					print(string.lower(GameNick).." and "..EditedNickname_low);
-					if string.find(string.lower(GameNick), EditedNickname_low) then
-						-- print("Find member: " .. GameNick); 
-						found = true
-						break;
-					end
-				end
-				if found == false then
-					answer = answer .. DiscordNick.name .. "\n"
-					--message:reply("Не удалось найти в игре: " .. DiscordNick.name .. "\n")
-				end
-			end
-		end
-		--]]
-		
 		message:reply(answer .. "\n")
-	
-	
 	
 	end
 end)
