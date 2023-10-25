@@ -218,6 +218,7 @@ client:on('messageCreate', function(message)
 		for _, DiscordNick in ipairs(DiscordNicknames) do
 			local WithoutPrefixNick
 			local err
+			found = false
 			WithoutPrefixNick, err = CheckPrefix(DiscordNick)
 			if err ~= nil then
 				log(err)
@@ -228,15 +229,21 @@ client:on('messageCreate', function(message)
 				end
 			else
 				for _, gamenick in ipairs(inGameNicknames) do --rewrite
-					_, last = string.find(WithoutPrefixNick, gamenick)
-					if (last) and (last < #WithoutPrefixNick) then
-						answer = answer .. ("\'" .. DiscordNick .. "\'" .. " После ника отсуствует разделительный пробел\n")
+					_, last = string.find(string.lower(WithoutPrefixNick), string.lower(gamenick))
+					if (last) then
+						if (last < #WithoutPrefixNick) then
+							answer = answer .. ("\'" .. DiscordNick .. "\'" .. " После ника отсуствует разделительный пробел\n")
+						end
+						found = true
 					end
 				end
+				if found == false then
+					answer = answer .. ("\'" .. DiscordNick .. "\'" .. " Не удалось найти в игре\n")
+				end
 			end
-
 		end
 		
+		message:reply(answer)
 	end
 end)
 
