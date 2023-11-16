@@ -103,16 +103,18 @@ client:on('ready', function()
 end)
 
 client:on('messageCreate', function(message)
+	
+	if message.guild == nil then
+		message:addReaction("✅");
+		return;
+	end
+	
 	if message.content == '!checkmembers' then
 		log("Catch !checkmembers:" .. message.author.name)
 
 		RoleForPing_id = ""
 		RoleForCheck_id = ""
-		if message.guild == nil then
-			message:addReaction("✅");
-			return;
-		end
-	
+
 		local guild = message.guild
 		local roles = guild.roles
 		
