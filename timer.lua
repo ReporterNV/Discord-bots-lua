@@ -49,7 +49,7 @@ client:on("messageCreate", function(message)
 			weeks*7*24*60*60
 
 		print("sec to timer: " .. time)
-		message:reply("Таймер установлен")
+		message:addReaction("✅");
 		print(message)
 		print(time)
 		print(note)
