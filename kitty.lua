@@ -13,16 +13,6 @@ RoleID = nil
 KittyTable = {}
 KittyHistory = {}
 
---[[
---[ ]Проверить есть ли в таблице котиков-учеников
---[ ]Проверить что есть роль котик ученик
---[ ]Проверить был ли в таблице котик ученик, если да, то переместить в таблицу история. И удалить из таблицы учеников
---[ ]Если есть, то внести, иначе это другое изменение
---[ ]По команде выводить время прошедшее с выдачи роли котик-ученик
---[ ]Каждое изменине таблицы экспортировать
---[ ]
---]]
-
 function getPrintedName(member)
 	--[[
 	print("member.nickname"..(member.nickname or ""))
@@ -55,7 +45,7 @@ function disp_time(time)
   local hours = math.floor(math.fmod(time, 86400)/3600)
   local minutes = math.floor(math.fmod(time,3600)/60)
   local seconds = math.floor(math.fmod(time,60))
-  return string.format("DAY:%d;HOURS:%02d;MIN:%02d;SEC:%02d",days,hours,minutes,seconds)
+  return string.format("DAY:%d; HOURS:%02d; MIN:%02d; SEC:%02d",days,hours,minutes,seconds)
 end
 
 function KittyPrint(KittyTable)
@@ -64,22 +54,55 @@ function KittyPrint(KittyTable)
 	end
 end
 
+function KittyPrint(KittyTable)
+	for id, date in pairs(KittyTable) do
+		print("ID:"..id.." | ".. disp_time(os.time()-date))
+	end
+end
+
+
+function KittyHistoryPrint(KittyHistoryTable)
+	for id, dates in pairs(KittyHistoryTable) do
+		print("ID:"..id.." | ".. dates.start .. " | " .. dates.finish)
+	end
+end
+
+
+
+
 client:on("memberUpdate", function(member)
 	local guild = member.guild
+	local id = member.id
 	print("Catch event for "..getPrintedName(member))
-	print("ID: "..member.id)
-	print("ret: "..getPrintedName(guild:getMember(member.id)))
+	print("ID: "..id)
+	print("ret: "..getPrintedName(guild:getMember(id)))
 	getRoleId(guild, RoleName)
-	if member:hasRole(RoleID) then
-		if KittyTable[member.id] == nil then
-			KittyTable[member.id] = os.time()
+	if KittyTable[id] == nil then
+		if member:hasRole(RoleID) then
+			KittyTable[id] = os.time()
 		end
+	else
+		print("remove kiity")
+		print(member:hasRole(RoleID))
+		print(not(member:hasRole(RoleID)))
+		if not(member:hasRole(RoleID)) then
+			print("remove kiity")
+			KittyHistory[id] = {}
+			KittyHistory[id].start = KittyTable[id]
+			KittyHistory[id].finish = os.time()
+			KittyTable[id] = nil
+		end
+
 	end
+
+
 	--[[
 	print(os.time())
 	print(os.date("%Y-%M-%d %H:%M:%S"))
 	--]]
-	KittyPrint(KittyTable)
+	
+	KittyPrint(KittyTable) --change to export
+	KittyHistoryPrint(KittyHistory)
 
 end)
 
@@ -92,22 +115,57 @@ client:on("messageCreate", function(message)
 		return;
 	end
 	local guild = message.guild
-	local output = ""
+	local output = "" --RNV change it for default msg is empty
 
 	if message.content == "!kitty" then
 	
 		for id, date in pairs(KittyTable) do
 			print("ID:"..guild:getMember(id).username.." | ".. disp_time(os.time()-date))
 
-			output = output.."Котенок: "..guild:getMember(id).nickname..
-				" Ученик уже: "..disp_time(os.time()-date).."\n"
+			output = output.."Котенок: \""..guild:getMember(id).nickname..
+				"\" ученик уже: "..disp_time(os.time()-date).."\n"
 		end
-		print(output);
-		message:reply(output);
+		if output == "" then
+			print("Output is nil")
+			message:reply("У нас только опытные коты!");
+		else
+			print(output);
+			message:reply(output);
+		end
 	end
 end)
 
 
+client:on("messageCreate", function(message)
+	if message.author.bot then return end
+		
+	if message.guild == nil then
+		message:addReaction("✅");
+		return;
+	end
+	local guild = message.guild
+	local output = "" --RNV change it for default msg is empty
+
+	if message.content == "!kittyhistory" then
+		for id, dates in pairs(KittyHistory) do
+			print("\n\n"..KittyHistory[id].start.."\n\n")
+			output = output.."Участник: \""..guild:getMember(id).nickname..--rewrite this
+				"\" был котенком-учеником с: "..
+				os.date("%x %X", KittyHistory[id].start) ..
+				" по ".. os.date("%x %X", KittyHistory[id].finish)..
+				"\n"
+		end
+
+		if output == "" then
+			print("Output is nil")
+			message:reply("История пуста.");
+		else
+			print(output);
+			message:reply(output);
+		end
+
+	end
+end)
 
 
 client:run("Bot " .. token)
