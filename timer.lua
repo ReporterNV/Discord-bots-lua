@@ -26,7 +26,7 @@ client:on("messageCreate", function(message)
 		local years = string.match(timer, "%d+[y]")
 		local month = string.match(timer, "%d+[M]")
 		--]]
-		local weeks = (string.match(time_str, "(%d+)[d]") or 0)
+		local weeks = (string.match(time_str, "(%d+)[w]") or 0)
 		local days  = (string.match(time_str, "(%d+)[d]") or 0)
 		local hours = (string.match(time_str, "(%d+)[h]") or 0)
 		local min = (string.match(time_str, "(%d+)[m]") or 0)

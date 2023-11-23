@@ -114,22 +114,24 @@ client:on("messageCreate", function(message)
 		message:addReaction("✅");
 		return;
 	end
-	local guild = message.guild
-	local output = "" --RNV change it for default msg is empty
 
+	local mention
+	local output = "" --RNV change it for default msg is empty
+	
 	if message.content == "!kitty" then
 	
 		for id, date in pairs(KittyTable) do
-			print("ID:"..guild:getMember(id).username.." | ".. disp_time(os.time()-date))
+			mention = client:getUser(id).mentionString
+			print("ID:".. id .." | ".. disp_time(os.time()-date))
 
-			output = output.."Котенок: \""..guild:getMember(id).nickname..
-				"\" ученик уже: "..disp_time(os.time()-date).."\n"
+			output = output.."Котенок: ".. mention ..
+				" ученик уже: " .. disp_time(os.time()-date) .. "\n"
 		end
 		if output == "" then
 			print("Output is nil")
 			message:reply("У нас только опытные коты!");
 		else
-			print(output);
+			print(output); --add split msg
 			message:reply(output);
 		end
 	end
@@ -143,14 +145,16 @@ client:on("messageCreate", function(message)
 		message:addReaction("✅");
 		return;
 	end
-	local guild = message.guild
-	local output = "" --RNV change it for default msg is empty
+
+	local output = ""
+	local mention
 
 	if message.content == "!kittyhistory" then
 		for id, dates in pairs(KittyHistory) do
+			mention = client:getUser(id).mentionString
 			print("\n\n"..KittyHistory[id].start.."\n\n")
-			output = output.."Участник: \""..guild:getMember(id).nickname..--rewrite this
-				"\" был котенком-учеником с: "..
+			output = output.."Участник: " .. mention ..
+				" был котенком-учеником с: "..
 				os.date("%x %X", KittyHistory[id].start) ..
 				" по ".. os.date("%x %X", KittyHistory[id].finish)..
 				"\n"
