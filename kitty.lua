@@ -11,31 +11,28 @@ local client = discordia.Client {
 RoleName = "котик-ученик"
 RoleID = nil
 KittyFilename = "Kitty.txt"
-KittyFilenameHistory = "KittyHistory.txt"
+KittyHistoryFilename = "KittyHistory.txt"
 KittyTable = {}
-KittyHistory = {}
+KittyHistoryTable = {}
 
 function getPrintedName(member)
 	return member.nickname or member.username._global_name or member.username
 end
 
-function getRoleId(guild, roleName)
+function getRoleId(guild, RoleName)
 	local roles = guild.roles
 	
 	for _, role in pairs(roles) do
 		if role.name == RoleName then
-			print("Find role ".. RoleName .. " " .. role.id)
 			RoleID = role.id
 		end
+	end
+	if RoleID == nil then
+		print("Role not found: " .. RoleName)
 	end
 
 	return RoleID
 end
-
-
-client:on('ready', function()
-	print('Bot is ready!')
-end)
 
 function disp_time(time)
   local days = math.floor(time/86400)
@@ -43,6 +40,15 @@ function disp_time(time)
   local minutes = math.floor(math.fmod(time, 3600)/60)
   local seconds = math.floor(math.fmod(time, 60))
   return string.format("DAY:%d; HOURS:%02d; MIN:%02d; SEC:%02d", days, hours, minutes, seconds)
+end
+
+local function split(str, sep)
+   local result = {}
+   local regex = ("([^%s]+)"):format(sep)
+   for each in str:gmatch(regex) do
+      table.insert(result, each)
+   end
+   return result
 end
 
 function KittyPrint(KittyTable)
@@ -56,8 +62,12 @@ function KittyImport(KittyTable)
 	if f ~= nil then
 	
 		for line in io.lines(KittyFilename) do
-			local args  = line:split("|")
-			KittyTable.args[1] = args[2]
+			print("line: "..line)
+			local args = {}
+			args = split(line, " | ")
+			local id = args[1]
+			local time = args[2]
+			KittyTable[id] = time
 		end
 		
 		f:close()
@@ -68,27 +78,10 @@ end
 function KittyExport(KittyTable)
 	local f = io.open(KittyFilename, "w")
 	for id, date in pairs(KittyTable) do
-		f:write(id .. " | " .. date)
+		f:write(id .. " | " .. date .. "\n")
 	end
 	f:close()
 end
-
-function KittyHistoryAdd(KittyHistory, id, start, finish)
-	local f = io.open(KittyFilenameHistory, "a")
-		f:write(id .. " | " .. start .. " | " .. finish)
-	f:close()
-end
-
-
-function KittyHistoryImport(KittyHistoryTable)
-	local f = io.open(KittyFilenameHistory, "a")
-	for id, date in pairs(KittyTable) do
-		file:write(id .. " | " .. date)
-	end
-	f:close()
-end
-
-
 
 function KittyHistoryPrint(KittyHistoryTable)
 	for id, dates in pairs(KittyHistoryTable) do
@@ -96,12 +89,47 @@ function KittyHistoryPrint(KittyHistoryTable)
 	end
 end
 
+function KittyHistoryAdd(KittyHistoryTable, id, start, finish)
+	local f = io.open(KittyHistoryFilename, "a")
+		f:write(id .. " | " .. start .. " | " .. finish .. "\n")
+	f:close()
+end
+
+function KittyHistoryImport(KittyHistoryTable)
+	local f = io.open(KittyHistoryFilename, "r")
+	if f ~= nil then
+		for line in io.lines(KittyHistoryFilename) do
+			local args = {}
+			args = split(line, " | ")
+			local id = args[1]
+			local start = args[2]
+			local finish = args[3]
+
+			KittyHistoryTable[id] = {}
+			KittyHistoryTable[id].start = start
+			KittyHistoryTable[id].finish = finish
+		end
+	end
+	f:close()
+end
+
+client:on('ready', function()
+	print('Bot is ready!')
+	print("Try import kitty")
+	KittyImport(KittyTable)
+	print("Try import kittys history")
+	KittyHistoryImport(KittyHistoryTable)
+end)
 
 client:on("memberUpdate", function(member)
 	local guild = member.guild
 	local id = member.id
 	print("Catch event for " .. id)
-	getRoleId(guild, RoleName)
+	rc = getRoleId(guild, RoleName)
+	if rc == nil then
+		print("ERROR!!")
+	end
+
 	if KittyTable[id] == nil then
 		if member:hasRole(RoleID) then
 			print("Add role: " .. id)
@@ -111,18 +139,18 @@ client:on("memberUpdate", function(member)
 	else
 		if not(member:hasRole(RoleID)) then
 			print("Remove role: " .. id)
-			KittyHistory[id] = {}
-			KittyHistory[id].start = KittyTable[id]
-			KittyHistory[id].finish = os.time()
+			KittyHistoryTable[id] = {}
+			KittyHistoryTable[id].start = KittyTable[id]
+			KittyHistoryTable[id].finish = os.time()
 			KittyTable[id] = nil
 			KittyExport(KittyTable)
-			KittyHistoryAdd(KittyHistory, id, KittyHistory[id].start, KittyHistory[id].finish)
+			KittyHistoryAdd(KittyHistoryTable, id, KittyHistoryTable[id].start, KittyHistoryTable[id].finish)
 		end
 
 	end
 
-	KittyPrint(KittyTable)--change to export
-	KittyHistoryPrint(KittyHistory)
+	KittyPrint(KittyTable)
+	KittyHistoryPrint(KittyHistoryTable)
 
 end)
 
@@ -173,13 +201,13 @@ client:on("messageCreate", function(message)
 	local mention
 
 	if message.content == "!kittyhistory" then
-		for id, dates in pairs(KittyHistory) do
+		for id, dates in pairs(KittyHistoryTable) do
 			mention = client:getUser(id).mentionString
-			print("\n\n"..KittyHistory[id].start.."\n\n")
+			print("\n\n"..KittyHistoryTable[id].start.."\n\n")
 			output = output.."Участник: " .. mention ..
 				" был котенком-учеником с: "..
-				os.date("%x %X", KittyHistory[id].start) ..
-				" по ".. os.date("%x %X", KittyHistory[id].finish)..
+				os.date("!%x %X", KittyHistoryTable[id].start) ..
+				" по ".. os.date("!%x %X", KittyHistoryTable[id].finish)..
 				"\n"
 		end
 
