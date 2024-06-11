@@ -15,13 +15,12 @@ KittyHistoryFilename = "KittyHistory.txt"
 KittyTable = {}
 KittyHistoryTable = {}
 
-function getPrintedName(member)
+local function getPrintedName(member)
 	return member.nickname or member.username._global_name or member.username
 end
 
-function getRoleId(guild, RoleName)
+local function getRoleId(guild, RoleName)
 	local roles = guild.roles
-	
 	for _, role in pairs(roles) do
 		if role.name == RoleName then
 			RoleID = role.id
@@ -34,7 +33,7 @@ function getRoleId(guild, RoleName)
 	return RoleID
 end
 
-function disp_time(time)
+local function disp_time(time)
   local days = math.floor(time/86400)
   local hours = math.floor(math.fmod(time, 86400)/3600)
   local minutes = math.floor(math.fmod(time, 3600)/60)
@@ -51,16 +50,15 @@ local function split(str, sep)
    return result
 end
 
-function KittyPrint(KittyTable)
+local function KittyPrint(KittyTable)
 	for id, date in pairs(KittyTable) do
 		print("ID:"..id.." | ".. disp_time(os.time()-date))
 	end
 end
 
-function KittyImport(KittyTable)
+local function KittyImport(KittyTable)
 	local f = io.open(KittyFilename, "r")
 	if f ~= nil then
-	
 		for line in io.lines(KittyFilename) do
 			print("line: "..line)
 			local args = {}
@@ -69,7 +67,6 @@ function KittyImport(KittyTable)
 			local time = args[2]
 			KittyTable[id] = time
 		end
-		
 		f:close()
 	end
 
@@ -129,7 +126,6 @@ client:on("memberUpdate", function(member)
 	if rc == nil then
 		print("ERROR!!")
 	end
-
 	if KittyTable[id] == nil then
 		if member:hasRole(RoleID) then
 			print("Add role: " .. id)
@@ -191,7 +187,6 @@ end)
 
 client:on("messageCreate", function(message)
 	if message.author.bot then return end
-		
 	if message.guild == nil then
 		message:addReaction("✅");
 		return;
