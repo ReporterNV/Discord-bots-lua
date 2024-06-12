@@ -33,8 +33,8 @@ client:on("messageCreate", function(message)
 		print(years)
 		print(month)
 		--]]
-		print("weeks: "..weeks);
-		print("days: "..days);
+		print("weeks: "..weeks .. 
+		      "days: "..days);
 		print("hours: "..hours);
 		print("min: "..min);
 		print("sec: "..sec);
